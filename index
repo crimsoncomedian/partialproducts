@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Partial Products Grid Multiplication</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: #f8f9fa;
+    color: #000;
+  }
+  h1 {
+    color: #333;
+    margin-bottom: 10px;
+  }
+  .problem {
+    font-size: 2em;
+    margin: 10px 0 20px;
+    font-weight: 500;
+  }
+  .grid-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 40px;
+    margin-top: 10px;
+    display: none;
+  }
+  .work-area {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .top-row {
+    display: flex;
+    align-items: flex-end;
+  }
+  .side-spacer {
+    width: 60px;
+    min-width: 60px;
+    height: 0;
+  }
+  .horizontal-labels {
+    display: flex;
+    font-weight: bold;
+  }
+  .horizontal-labels .label-cell {
+    width: 60px;
+    min-width: 60px;
+    min-height: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    font-size: 1.1em;
+  }
+  .body-row {
+    display: flex;
+  }
+  .vertical-labels {
+    font-weight: bold;
+    display: flex;
+    flex-direction: column;
+  }
+  .vertical-labels .label-cell {
+    width: 60px;
+    min-width: 60px;
+    min-height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.1em;
+  }
+  .grid {
+    display: grid;
+    border: 2px solid #333;
+    background-color: #fff;
+  }
+  .grid .cell {
+    border: 1px solid #ccc;
+    width: 60px;
+    min-width: 60px;
+    height: 60px;
+    min-height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.1em;
+  }
+  .sum-section {
+    text-align: right;
+    min-width: 200px;
+    display: none;
+  }
+  .sum-title {
+    font-weight: bold;
+    font-size: 1.2em;
+    margin-bottom: 6px;
+    text-align: left;
+  }
+  .partials-list {
+    font-family: 'Courier New', monospace;
+    font-size: 1.3em;
+    line-height: 1.4em;
+  }
+  .partials-list div {
+    text-align: right;
+    white-space: pre;
+  }
+  .total-line {
+    border-top: 2px solid #333;
+    width: 100%;
+    margin: 6px 0;
+  }
+  .total {
+    font-size: 1.2em;
+    font-weight: bold;
+    text-align: right;
+  }
+  button {
+    margin-top: 30px;
+    padding: 10px 20px;
+    font-size: 1em;
+    border: none;
+    background-color: #007bff;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: #0056b3;
+  }
+</style>
+</head>
+<body>
+<h1>Partial Products</h1>
+<div class="problem" id="problem"></div>
+<div class="grid-container" id="gridContainer">
+  <div class="work-area">
+    <div class="top-row">
+      <div class="side-spacer"></div>
+      <div id="topLabels" class="horizontal-labels"></div>
+    </div>
+    <div class="body-row">
+      <div id="sideLabels" class="vertical-labels"></div>
+      <div id="grid" class="grid"></div>
+    </div>
+  </div>
+  <div class="sum-section" id="sumSection"></div>
+</div>
+<button id="mainButton" onclick="toggleSolution()">Show Me the Solution</button>
+
+<script>
+let currentProblem = {};
+let showingSolution = false;
+
+function placeValueParts(n) {
+  const digits = String(n).split("");
+  return digits.map((d, i) => parseInt(d) * 10 ** (digits.length - i - 1));
+}
+
+function trimEdgeZeros(parts) {
+  let start = 0;
+  let end = parts.length - 1;
+  while (start < parts.length && parts[start] === 0) start++;
+  while (end >= 0 && parts[end] === 0) end--;
+  if (start > end) return [0];
+  return parts.slice(start, end + 1);
+}
+
+function padAlign(numbers) {
+  const maxLen = Math.max(...numbers.map(n => String(n).length));
+  return numbers.map(n => String(n).padStart(maxLen, ' '));
+}
+
+function generateProblem() {
+  const problemTypes = [[2, 2], [2, 3], [3, 3]];
+  const [aDigits, bDigits] = problemTypes[Math.floor(Math.random() * problemTypes.length)];
+
+  function randWithDigits(digs) {
+    const min = 10 ** (digs - 1);
+    const max = 10 ** digs - 1;
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  const a = randWithDigits(aDigits);
+  const b = randWithDigits(bDigits);
+  currentProblem = { a, b };
+  showingSolution = false;
+  document.getElementById('mainButton').textContent = 'Show Me the Solution';
+
+  document.getElementById('problem').textContent = `${a} × ${b}`;
+  document.getElementById('gridContainer').style.display = 'none';
+}
+
+function toggleSolution() {
+  if (!showingSolution) {
+    showSolution();
+    showingSolution = true;
+    document.getElementById('mainButton').textContent = 'Generate a New Problem';
+  } else {
+    generateProblem();
+  }
+}
+
+function showSolution() {
+  const { a, b } = currentProblem;
+  if (!a || !b) return;
+  const gridContainer = document.getElementById('gridContainer');
+  gridContainer.style.display = 'flex';
+
+  const aParts = trimEdgeZeros(placeValueParts(a));
+  const bParts = trimEdgeZeros(placeValueParts(b));
+
+  const grid = document.getElementById('grid');
+  const sideLabels = document.getElementById('sideLabels');
+  const topLabels = document.getElementById('topLabels');
+  const sumSection = document.getElementById('sumSection');
+
+  grid.innerHTML = '';
+  sideLabels.innerHTML = '';
+  topLabels.innerHTML = '';
+  sumSection.innerHTML = '';
+  sumSection.style.display = 'block';
+
+  grid.style.gridTemplateColumns = `repeat(${aParts.length}, 60px)`;
+  grid.style.gridTemplateRows = `repeat(${bParts.length}, 60px)`;
+
+  aParts.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'label-cell';
+    div.textContent = p;
+    topLabels.appendChild(div);
+  });
+
+  const partialProducts = [];
+  bParts.forEach(bPart => {
+    const rowLabel = document.createElement('div');
+    rowLabel.className = 'label-cell';
+    rowLabel.textContent = bPart;
+    sideLabels.appendChild(rowLabel);
+
+    aParts.forEach(aPart => {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      const product = aPart * bPart;
+      cell.textContent = product;
+      grid.appendChild(cell);
+      if (product !== 0) partialProducts.push(product);
+    });
+  });
+
+  const titleDiv = document.createElement('div');
+  titleDiv.className = 'sum-title';
+  titleDiv.textContent = 'Partial Products:';
+  sumSection.appendChild(titleDiv);
+
+  const listDiv = document.createElement('div');
+  listDiv.className = 'partials-list';
+  const aligned = padAlign(partialProducts);
+  aligned.forEach((p, i) => {
+    const line = document.createElement('div');
+    if (i === aligned.length - 1 && aligned.length > 1) {
+      line.textContent = '+ ' + p.trim();
+    } else {
+      line.textContent = '  ' + p.trim();
+    }
+    listDiv.appendChild(line);
+  });
+  sumSection.appendChild(listDiv);
+
+  const lineBreak = document.createElement('div');
+  lineBreak.className = 'total-line';
+  sumSection.appendChild(lineBreak);
+
+  const totalDiv = document.createElement('div');
+  totalDiv.className = 'total';
+  totalDiv.textContent = `${a * b}`;
+  sumSection.appendChild(totalDiv);
+}
+
+generateProblem();
+</script>
+</body>
+</html>
